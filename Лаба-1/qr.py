@@ -1,169 +1,181 @@
-def matrix_mult(A, B):
-    """Умножение матриц"""
-    rows_A, cols_A = len(A), len(A[0])
-    rows_B, cols_B = len(B), len(B[0])
-    if cols_A != rows_B:
-        raise ValueError("Несовместимые размеры матриц для умножения")
-    result = [[0 for _ in range(cols_B)] for _ in range(rows_A)]
-    for i in range(rows_A):
-        for j in range(cols_B):
-            for k in range(cols_A):
-                result[i][j] += A[i][k] * B[k][j]
-    return result
+import math
 
-def vector_dot(u, v):
-    """Скалярное произведение векторов"""
-    if len(u) != len(v):
-        raise ValueError("Векторы должны иметь одинаковую длину")
-    return sum(u[i] * v[i] for i in range(len(u)))
 
-def vector_norm(v):
-    """Евклидова норма"""
-    return sum(x*x for x in v) ** 0.5
+def print_matrix(matrix):
+    """Печать матрицы"""
+    n = len(matrix[0])
+    for row in matrix:
+        print('-' * (n * 13))
+        print(" | ".join(f"{val:10.6f}" for val in row))
+    print('-' * (n * 13))
 
-def identity_matrix(n):
-    """Единичная матрица n x n"""
-    I = [[0 for _ in range(n)] for _ in range(n)]
-    for i in range(n):
-        I[i][i] = 1
-    return I
-
-def outer_product(u, v):
-    """Внешнее произведение векторов"""
-    rows, cols = len(u), len(v)
-    result = [[0 for _ in range(cols)] for _ in range(rows)]
-    for i in range(rows):
-        for j in range(cols):
-            result[i][j] = u[i] * v[j]
-    return result
-
-def scalar_mult(c, A):
-    """Умножение матрицы на скаляр"""
-    rows, cols = len(A), len(A[0])
-    result = [[0 for _ in range(cols)] for _ in range(rows)]
-    for i in range(rows):
-        for j in range(cols):
-            result[i][j] = c * A[i][j]
-    return result
-
-def matrix_sub(A, B):
-    """Вычитание матриц"""
-    rows, cols = len(A), len(A[0])
-    if rows != len(B) or cols != len(B[0]):
-        raise ValueError("Матрицы должны иметь одинаковый размер")
-    result = [[0 for _ in range(cols)] for _ in range(rows)]
-    for i in range(rows):
-        for j in range(cols):
-            result[i][j] = A[i][j] - B[i][j]
-    return result
-
-def householder_qr(A):
-    """QR-разложение с помощью отражений Хаусхолдера"""
+def householder_reflection(A):
     n = len(A)
     Q = identity_matrix(n)
-    R = [row[:] for row in A]
-
+    
     for k in range(n - 1):
-        x = [R[i][k] for i in range(k, n)]
-        norm_x = vector_norm(x)
-        if norm_x < 1e-15:
-            continue
-        sign = 1 if x[0] >= 0 else -1
-        v = x[:]
-        v[0] += sign * norm_x
-        beta = 2.0 / vector_dot(v, v)
-        v_vt = outer_product(v, v)
-        H = matrix_sub(identity_matrix(len(v)), scalar_mult(beta, v_vt))
-
-        # Применяем H к подматрице R
-        R_sub = [[R[i][j] for j in range(k, n)] for i in range(k, n)]
-        H_R = matrix_mult(H, R_sub)
+        # Вычисляем вектор v для преобразования Хаусхолдера
+        v = [0.0] * n
+        norm = 0.0
+        
         for i in range(k, n):
-            for j in range(k, n):
-                R[i][j] = H_R[i - k][j - k]
-
-        # Обновляем Q
-        Q_sub = [[Q[i][j] for j in range(k, n)] for i in range(n)]
-        Q_H = matrix_mult(Q_sub, H)
+            norm += A[i][k] ** 2
+        norm = math.sqrt(norm)
+        
+        sign = 1.0 if A[k][k] >= 0 else -1.0
+        v[k] = A[k][k] + sign * norm
+        
+        for i in range(k + 1, n):
+            v[i] = A[i][k]
+        
+        # Вычисляем норму вектора v
+        v_norm = 0.0
+        for i in range(k, n):
+            v_norm += v[i] ** 2
+        
+        if v_norm < 1e-15:
+            continue
+        
+        # Создаем матрицу Хаусхолдера H = I - 2*v*v^T/(v^T*v)
+        H = identity_matrix(n)
         for i in range(n):
-            for j in range(k, n):
-                Q[i][j] = Q_H[i][j - k]
+            for j in range(n):
+                H[i][j] -= 2 * v[i] * v[j] / v_norm
+        
+        # Применяем преобразование
+        A = matrix_multiply(H, A)
+        Q = matrix_multiply(Q, H)
+    
+    return Q, A
 
-    return Q, R
-
-def qr_algorithm(A, eps=1e-10, max_iter=1000):
-    """QR-алгоритм для нахождения формы Шура"""
+def qr_algorithm(A, epsilon=1e-6):
     n = len(A)
     A_k = [row[:] for row in A]
-
-    for iteration in range(max_iter):
-        Q, R = householder_qr(A_k)
-        A_next = matrix_mult(R, Q)
-        A_k = A_next
-        # проверка сходимости по поддиагонали
-        converged = True
-        for m in range(n - 1):
-            sub_norm = vector_norm([A_k[i][m] for i in range(m + 1, n)])
-            if sub_norm >= eps:
-                converged = False
-                break
-        if converged:
-            break
-    return A_k
-
-def extract_eigenvalues_from_schur(schur_form, eps=1e-10):
-    """Извлечение собственных значений из верхнетреугольной матрицы Шура"""
-    n = len(schur_form)
+    eigenvalues_prev = [float('inf')] * n
     eigenvalues = []
-    i = 0
-    while i < n:
-        if i == n - 1 or abs(schur_form[i+1][i]) < eps:
-            eigenvalues.append(schur_form[i][i])
-            i += 1
-        else:
-            a = schur_form[i][i]
-            b = schur_form[i][i+1]
-            c = schur_form[i+1][i]
-            d = schur_form[i+1][i+1]
-            trace = a + d
-            det = a*d - b*c
-            discriminant = trace**2 - 4*det
-            if discriminant >= 0:
-                lambda1 = (trace + discriminant**0.5)/2
-                lambda2 = (trace - discriminant**0.5)/2
-                eigenvalues.extend([lambda1, lambda2])
+    iterations = 0
+
+    while True:
+        # QR-разложение
+        iterations += 1
+        Q, A = householder_reflection(A_k)
+        A_k = matrix_multiply(A, Q)
+
+        eigenvalues = []
+        i = 0
+        while i < n:
+            if i < n - 1 and abs(A_k[i + 1][i]) > epsilon:
+                # Блок 2x2 для комплексных собственных значений
+                a = A_k[i][i]
+                b = A_k[i][i + 1]
+                c = A_k[i + 1][i]
+                d = A_k[i + 1][i + 1]
+                
+                # Решаем характеристическое уравнение
+                trace = a + d
+                det = a * d - b * c
+                
+                discriminant = trace ** 2 - 4 * det
+                if discriminant < 0:
+                    # Комплексные собственные значения
+                    real_part = trace / 2
+                    imag_part = math.sqrt(-discriminant) / 2
+                    eigenvalues.append(complex(real_part, imag_part))
+                    eigenvalues.append(complex(real_part, -imag_part))
+                else:
+                    # Вещественные собственные значения
+                    eigenvalues.append((trace + math.sqrt(discriminant)) / 2)
+                    eigenvalues.append((trace - math.sqrt(discriminant)) / 2)
+                
+                i += 2
             else:
-                real_part = trace / 2
-                imag_part = (-discriminant)**0.5 / 2
-                eigenvalues.extend([complex(real_part, imag_part),
-                                    complex(real_part, -imag_part)])
-            i += 2
-    return eigenvalues
+                # Вещественное собственное значение
+                eigenvalues.append(A_k[i][i])
+                i += 1
+        for i in range(n):
+            if abs(eigenvalues[i] - eigenvalues_prev[i]) >= epsilon:
+                eigenvalues_prev = eigenvalues
+                break
+        else:
+            break
 
-# Пример использования
-A = [
-    [3, -5, -4, 7, -1],
-    [-1, 17, 1, 2, 2],
-    [-2, 3, 4, -1, 5],
-    [2, -1, -4, 1, 3],
-    [1, 3, -5, 1, 2]
-]
+    return eigenvalues, iterations
 
-print("Исходная матрица:")
-for row in A:
-    print(row)
+# Вспомогательные функции для работы с матрицами
+def identity_matrix(n):
+    return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
 
-schur_form = qr_algorithm(A, eps=1e-4, max_iter=10000)
+def matrix_multiply(A, B):
+    n = len(A)
+    m = len(B[0])
+    p = len(B)
+    
+    result = [[0.0 for _ in range(m)] for _ in range(n)]
+    
+    for i in range(n):
+        for j in range(m):
+            for k in range(p):
+                result[i][j] += A[i][k] * B[k][j]
+    
+    return result
 
-print("\nФорма Шура:")
-for row in schur_form:
-    print([f"{x:.6f}" for x in row])
+def main():
+    A = [
+        [3, -5, -4, 7, -1],
+        [-1, 17, 1, 2, 2],
+        [-2, 3, 4, -1, 5],
+        [2, -1, -4, 1, 3],
+        [1, 3, -5, 1, 2]
+    ]
+    EPS = 0.0000001
+    eigenvalues, iterations = qr_algorithm(A, EPS)
+    
+    print("Собственные значения матрицы:")
+    for i, eig in enumerate(eigenvalues):
+        print(f"λ_{i+1} = {eig}")
 
-our_eigenvalues = extract_eigenvalues_from_schur(schur_form)
+    print(f'\nКоличество итераций: {iterations}')
+        # Проверка корректности найденных собственных значений
+    print("\nПроверка корректности собственных значений:")
+    for i, eig in enumerate(eigenvalues):
+        # Создаем матрицу (A - λI)
+        n = len(A)
+        A_minus_lambda_I = [[A[j][k] - (eig if j == k else 0) for k in range(n)] for j in range(n)]
+        
+        # Вычисляем определитель для проверки (характеристический полином)
+        # Используем метод Гаусса для приведения к треугольному виду
+        det = 1.0
+        temp_matrix = [row[:] for row in A_minus_lambda_I]
+        
+        for col in range(n):
+            # Поиск максимального элемента в столбце
+            max_row = col
+            for row in range(col + 1, n):
+                if abs(temp_matrix[row][col]) > abs(temp_matrix[max_row][col]):
+                    max_row = row
+            
+            # Перестановка строк
+            if max_row != col:
+                temp_matrix[col], temp_matrix[max_row] = temp_matrix[max_row], temp_matrix[col]
+                det *= -1
+            
+            # Проверка на нулевой столбец
+            if abs(temp_matrix[col][col]) < 1e-10:
+                det = 0.0
+                break
+            
+            # Умножение определителя на диагональный элемент
+            det *= temp_matrix[col][col]
+            
+            # Обнуление элементов ниже диагонали
+            for row in range(col + 1, n):
+                factor = temp_matrix[row][col] / temp_matrix[col][col]
+                for j in range(col, n):
+                    temp_matrix[row][j] -= factor * temp_matrix[col][j]
+        
+        error = abs(det)
+        print(f"|det(A - λ_{i+1}I)| = {error:.2f} {'OK' if error < 0.2 else 'WRONG'}")
 
-print("\nСобственные значения:")
-for val in our_eigenvalues:
-    if isinstance(val, complex):
-        print(f"{val.real:.6f} + {val.imag:.6f}i")
-    else:
-        print(f"{val:.6f}")
+
+if __name__ == "__main__":
+    main()
