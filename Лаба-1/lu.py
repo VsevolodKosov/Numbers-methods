@@ -1,60 +1,70 @@
-from fractions import Fraction
-
-def lu_solve_and_residual(A, b):
+def lu_solve_residual_determinant_inverse_no_pivot(A, b):
     n = len(A)
-    LU = [[Fraction(x) for x in row] for row in A]
-    b_frac = [Fraction(x) for x in b]
-    P = list(range(n))
-
-    # LU-разложение 
-    for i in range(n):
-        max_row = i
-        for k in range(i, n):
-            if abs(LU[k][i]) > abs(LU[max_row][i]):
-                max_row = k
-        if max_row != i:
-            LU[i], LU[max_row] = LU[max_row], LU[i]
-            P[i], P[max_row] = P[max_row], P[i]
-
-        for j in range(i, n):
-            s = sum(LU[i][k] * LU[k][j] for k in range(i))
-            LU[i][j] -= s
-
-        for j in range(i + 1, n):
-            s = sum(LU[j][k] * LU[k][i] for k in range(i))
-            LU[j][i] = (LU[j][i] - s) / LU[i][i]
-
-    # Разделение на L и U
-    L = [[Fraction(0) for _ in range(n)] for _ in range(n)]
-    U = [[Fraction(0) for _ in range(n)] for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            if i > j:
-                L[i][j] = LU[i][j]
-            else:
-                U[i][j] = LU[i][j]
-        L[i][i] = Fraction(1)
-
-    # Решение системы
-    b_permuted = [b_frac[P[i]] for i in range(n)]
-    y = [Fraction(0) for _ in range(n)]
-    for i in range(n):
-        s = sum(LU[i][j] * y[j] for j in range(i))
-        y[i] = b_permuted[i] - s
-
-    x = [Fraction(0) for _ in range(n)]
-    for i in range(n - 1, -1, -1):
-        s = sum(LU[i][j] * x[j] for j in range(i + 1, n))
-        x[i] = (y[i] - s) / LU[i][i]
-
-    # Вычисление невязки
-    residual = [Fraction(0) for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            residual[i] += A[i][j] * x[j]
-        residual[i] -= b_frac[i]
+    LU = [row[:] for row in A]
+    b_copy = b[:]
     
-    return x, L, U, residual
+    # LU-разложение
+    for k in range(n-1):
+        # u_kk^(k) - уже находится в LU[k][k]
+        
+        # l_rk^(k) = u_rk^(k-1) / u_kk^(k), 
+        for r in range(k+1, n):
+            LU[r][k] = LU[r][k] / LU[k][k]
+        
+        # u_rc^(k) = u_rc^(k-1) - l_rk^(k) * u_kc^(k)
+        for r in range(k+1, n):
+            for c in range(k+1, n):
+                LU[r][c] = LU[r][c] - LU[r][k] * LU[k][c]
+    
+    # Решение системы Ly = b (прямая подстановка)
+    y = [0] * n
+    for i in range(n):
+        s = 0
+        for j in range(i):
+            s += LU[i][j] * y[j]
+        y[i] = b_copy[i] - s
+    
+    # Решение системы Ux = y (обратная подстановка)
+    x = [0] * n
+    for i in range(n-1, -1, -1):
+        s = 0
+        for j in range(i+1, n):
+            s += LU[i][j] * x[j]
+        x[i] = (y[i] - s) / LU[i][i]
+    
+    # Вычисление определителя
+    determinant = 1
+    for i in range(n):
+        determinant *= LU[i][i]
+    
+    # Вычисление обратной матрицы
+    A_inv = [[0 for _ in range(n)] for _ in range(n)]
+    for col in range(n):
+        # Решаем систему для каждого столбца единичной матрицы
+        e = [1 if i == col else 0 for i in range(n)]
+        
+        # Прямая подстановка для L
+        y_col = [0] * n
+        for i in range(n):
+            s = 0
+            for j in range(i):
+                s += LU[i][j] * y_col[j]
+            y_col[i] = e[i] - s
+        
+        # Обратная подстановка для U
+        x_col = [0] * n
+        for i in range(n-1, -1, -1):
+            s = 0
+            for j in range(i+1, n):
+                s += LU[i][j] * x_col[j]
+            x_col[i] = (y_col[i] - s) / LU[i][i]
+        
+        # Записываем результат как столбец обратной матрицы
+        for i in range(n):
+            A_inv[i][col] = x_col[i]
+    
+    return x, LU, b_copy, determinant, A_inv
+
 
 if __name__ == "__main__":
     mas = [
@@ -66,17 +76,21 @@ if __name__ == "__main__":
     ]
     b = [15, 58, 72, 39, 24]
 
-    x, L, U, residual = lu_solve_and_residual(mas, b)
+    x, LU, b_copy, det, A_inv = lu_solve_residual_determinant_inverse_no_pivot(mas, b)
 
-    # Вывод результатов
     def print_matrix(mat, name):
         print(f"\n{name}:")
         for row in mat:
-            print([round(float(e), 4) for e in row])
+            print(row)
 
-    print_matrix(U, "Матрица U")
-    print_matrix(L, "Матрица L")
+    print("\nКомбинированная матрица LU:")
+    for row in LU:
+        print(row)
+    
     print("\nРешение системы x:")
-    print([round(float(e), 4) for e in x])
-    print("\nНевязка (Ax-b):")
-    print([round(float(e), 4) for e in residual])
+    print(x)
+    
+    print("\nОпределитель матрицы A:")
+    print(det)
+    
+    print_matrix(A_inv, "Обратная матрица A^-1")
