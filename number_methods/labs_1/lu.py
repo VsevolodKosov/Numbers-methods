@@ -1,4 +1,4 @@
-def lu_solve_residual_determinant_inverse_no_pivot(A, b):
+def lu_solve(A, b):
     n = len(A)
     LU = [row[:] for row in A]
     b_copy = b[:]
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     ]
     b = [15, 58, 72, 39, 24]
 
-    x, LU, b_copy, det, A_inv = lu_solve_residual_determinant_inverse_no_pivot(mas, b)
+    x, LU, b_copy, det, A_inv = lu_solve(mas, b)
 
     def print_matrix(mat, name):
         print(f"\n{name}:")

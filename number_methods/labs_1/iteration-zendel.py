@@ -1,11 +1,6 @@
 def simple_iteration(A, b, epsilon=1e-4, max_iterations=10000):
-    """
-    Метод простых итераций для решения системы Ax = b
-    """
     n = len(A)
-    x = [0.0] * n  # начальное приближение
     
-    # Формируем матрицу B и вектор c
     B = [[0.0] * n for _ in range(n)]
     c = [0.0] * n
     
@@ -14,8 +9,9 @@ def simple_iteration(A, b, epsilon=1e-4, max_iterations=10000):
         for j in range(n):
             if i != j:
                 B[i][j] = -A[i][j] / A[i][i]
+
+    x = c[:]
     
-    # Итерационный процесс
     for iteration in range(max_iterations):
         x_new = [sum(B[i][j] * x[j] for j in range(n)) + c[i] for i in range(n)]
         max_diff = max(abs(x_new[i] - x[i]) for i in range(n))
@@ -26,11 +22,9 @@ def simple_iteration(A, b, epsilon=1e-4, max_iterations=10000):
     return x, max_iterations
     
 def seidel_method(A, b, epsilon=1e-4, max_iterations=10000):
-    """
-    Метод Зейделя для решения системы Ax = b
-    """
+ 
     n = len(A)
-    x = [0.0] * n  # начальное приближение
+    x = [0.0] * n 
     
     for iteration in range(max_iterations):
         x_new = x[:]
@@ -54,7 +48,7 @@ def check_solution(A, b, x):
     n = len(A)
     for i in range(n):
         left_value = sum(A[i][j] * x[j] for j in range(n))
-        print(f"Уравнение {i+1}: {left_value:.6f} = {b[i]:.6f}")
+        print(f"Уравнение {i+1}: {left_value:.6f} ≈ {b[i]:.6f}")
     print()
 
 if __name__ == "__main__":

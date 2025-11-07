@@ -1,4 +1,4 @@
-def gaussian_matrix_operations_no_swap(A, b):
+def method_Gaus(A, b):
     n = len(A)
 
     augmented = []
@@ -9,7 +9,7 @@ def gaussian_matrix_operations_no_swap(A, b):
 
     det_factor = 1.0
     for col in range(n):
-        pivot = augmented[col][col]
+        pivot = augmented[col][col] #a_11
 
         if abs(pivot) < 1e-12:
             det = 0.0
@@ -19,14 +19,14 @@ def gaussian_matrix_operations_no_swap(A, b):
 
         det_factor *= pivot
         for j in range(col, cols):
-            augmented[col][j] /= pivot
+            augmented[col][j] /= pivot #a_1j / a_11
 
         for i in range(n):
             if i == col:
                 continue
-            factor = augmented[i][col]
+            factor = augmented[i][col] # a_i1
             for j in range(col, cols):
-                augmented[i][j] -= factor * augmented[col][j]
+                augmented[i][j] -= factor * augmented[col][j] #a_i1 * a_1j
 
     det = det_factor
 
@@ -50,9 +50,9 @@ if __name__ == "__main__":
     ]
     b = [15, 58, 72, 39, 24]
 
-    det, inv, sol = gaussian_matrix_operations_no_swap(A, b)
+    det, inv, sol = method_Gaus(A, b)
 
-    print("Результаты метода Гаусса (без перестановки строк):")
+    print("Результаты метода Гаусса:")
     print("\nРешение системы:")
     print([x for x in sol])
 
