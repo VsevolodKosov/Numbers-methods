@@ -165,18 +165,15 @@ def plot_spline(x, y, point, a_coeff, b_coeff, c, d_coeff, segment_index):
     dx_segment_detailed = x_segment_detailed - x[i-1]
     y_segment_detailed = a_coeff[i] + b_coeff[i] * dx_segment_detailed + c[i] * dx_segment_detailed**2 + d_coeff[i] * dx_segment_detailed**3
     
-    # Рисуем ТОЛЬКО текущий сегмент сплайна на детальном графике
     ax5.plot(x_segment_detailed, y_segment_detailed, 'b-', linewidth=3, label=f'Кубический сплайн (сегмент {i})')
     
-    # Добавляем ВСЕ узловые точки на детальный график
     for j in range(len(x)):
         ax5.scatter(x[j], y[j], color='red', s=50, zorder=5, label='Узловые точки' if j == 0 else "")
     
     ax5.scatter([point], [S_point], color='green', s=150, zorder=6, marker='*', label=f'x* = {point}')
     ax5.axvline(x=point, color='green', linestyle='--', alpha=0.7, label=f'S(x*) = {S_point:.4f}')
     
-    # Увеличиваем масштаб чтобы были видны ВСЕ узловые точки
-    margin = (max(x) - min(x)) * 0.1  # Используем общий масштаб для всех точек
+    margin = (max(x) - min(x)) * 0.1 
     ax5.set_xlim(min(x) - margin, max(x) + margin)
     ax5.set_ylim(min(y) - 0.5, max(y) + 0.5)
     
