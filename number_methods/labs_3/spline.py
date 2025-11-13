@@ -68,17 +68,16 @@ def cubic_spline_natural(x, y, point):
     return spline_value, spline_derivative, spline_second_derivative, a_coeff, b_coeff, c, d_coeff, segment_index
 
 def plot_spline(x, y, point, a_coeff, b_coeff, c, d_coeff, segment_index):
-    fig = plt.figure(figsize=(20, 16))
+    fig = plt.figure(figsize=(20, 12))
     
     n = len(x) - 1
     
     S_point, S_der_point, S_der2_point, _, _, _, _, _ = cubic_spline_natural(x, y, point)
     
-    ax1 = plt.subplot(2, 3, 1)
-    ax2 = plt.subplot(2, 3, 2)
-    ax3 = plt.subplot(2, 3, 3)
-    ax4 = plt.subplot(2, 3, 4)
-    ax5 = plt.subplot(2, 3, 5)
+    ax1 = plt.subplot(2, 2, 1)
+    ax2 = plt.subplot(2, 2, 2)
+    ax3 = plt.subplot(2, 2, 3)
+    ax4 = plt.subplot(2, 2, 4)
     
     colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
     
@@ -136,52 +135,28 @@ def plot_spline(x, y, point, a_coeff, b_coeff, c, d_coeff, segment_index):
     ax3.legend()
     ax3.grid(True, alpha=0.3)
     
-    ax4.scatter([point], [S_der2_point], color='green', s=150, zorder=6, marker='*', label=f'x* = {point}')
-    ax4.axvline(x=point, color='green', linestyle='--', alpha=0.7, label=f'S\'\'(x*) = {S_der2_point:.4f}')
-    
-    for i in range(1, n + 1):
-        x_segment = np.linspace(x[i-1], x[i], 100)
-        dx_segment = x_segment - x[i-1]
-        y_second_derivative = 2 * c[i] + 6 * d_coeff[i] * dx_segment
-        ax4.plot(x_segment, y_second_derivative, 'r-', linewidth=2)
-    
-    for i in range(len(x)):
-        if i == 0:
-            der2 = 2 * c[1]
-        elif i == n:
-            der2 = 2 * c[n] + 6 * d_coeff[n] * (x[n] - x[n-1])
-        else:
-            der2 = 2 * c[i] + 6 * d_coeff[i] * (x[i] - x[i-1])
-        ax4.scatter(x[i], der2, color='red', s=30, zorder=5)
-    
-    ax4.set_title('Вторая производная кубического сплайна S\'\'(x)', pad=15)
-    ax4.set_xlabel('x')
-    ax4.set_ylabel('S\'\'(x)')
-    ax4.legend()
-    ax4.grid(True, alpha=0.3)
-    
     i = segment_index
     x_segment_detailed = np.linspace(x[i-1], x[i], 200)
     dx_segment_detailed = x_segment_detailed - x[i-1]
     y_segment_detailed = a_coeff[i] + b_coeff[i] * dx_segment_detailed + c[i] * dx_segment_detailed**2 + d_coeff[i] * dx_segment_detailed**3
     
-    ax5.plot(x_segment_detailed, y_segment_detailed, 'b-', linewidth=3, label=f'Кубический сплайн (сегмент {i})')
+    ax4.plot(x_segment_detailed, y_segment_detailed, 'b-', linewidth=3, label=f'Кубический сплайн (сегмент {i})')
     
     for j in range(len(x)):
-        ax5.scatter(x[j], y[j], color='red', s=50, zorder=5, label='Узловые точки' if j == 0 else "")
+        ax4.scatter(x[j], y[j], color='red', s=50, zorder=5, label='Узловые точки' if j == 0 else "")
     
-    ax5.scatter([point], [S_point], color='green', s=150, zorder=6, marker='*', label=f'x* = {point}')
-    ax5.axvline(x=point, color='green', linestyle='--', alpha=0.7, label=f'S(x*) = {S_point:.4f}')
+    ax4.scatter([point], [S_point], color='green', s=150, zorder=6, marker='*', label=f'x* = {point}')
+    ax4.axvline(x=point, color='green', linestyle='--', alpha=0.7, label=f'S(x*) = {S_point:.4f}')
     
     margin = (max(x) - min(x)) * 0.1 
-    ax5.set_xlim(min(x) - margin, max(x) + margin)
-    ax5.set_ylim(min(y) - 0.5, max(y) + 0.5)
+    ax4.set_xlim(min(x) - margin, max(x) + margin)
+    ax4.set_ylim(min(y) - 0.5, max(y) + 0.5)
     
-    ax5.set_title(f'Детальный вид вокруг x* (сегмент {segment_index})', pad=15)
-    ax5.set_xlabel('x')
-    ax5.set_ylabel('S(x)')
-    ax5.legend()
-    ax5.grid(True, alpha=0.3)
+    ax4.set_title(f'Детальный вид вокруг x* (сегмент {segment_index})', pad=15)
+    ax4.set_xlabel('x')
+    ax4.set_ylabel('S(x)')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
     
     plt.tight_layout(pad=2.0)
     plt.subplots_adjust(top=0.92, hspace=0.4, wspace=0.3)

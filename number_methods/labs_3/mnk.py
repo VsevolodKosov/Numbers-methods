@@ -35,11 +35,22 @@ def evaluate_polynomial(coeffs, x_point):
     return result
 
 def calculate_errors_mnk(y_true, y_pred):
-    """Расчет ошибок строго по методичке стр. 5"""
-    n_points = len(y_true)  # количество точек
+    n_points = len(y_true)
     sum_squared_errors = sum((y_pred_i - y_true_i)**2 for y_pred_i, y_true_i in zip(y_pred, y_true))
-    standard_error = (sum_squared_errors / n_points)**0.5  # делим на количество точек
+    standard_error = (sum_squared_errors / (n_points + 1))**0.5  
     return sum_squared_errors, standard_error
+
+def calculate_condition_number(A, A_inv):
+    if A_inv is None:
+        return float('inf')  
+    
+    # Вычисляем нормы матриц 
+    norm_A = max(sum(abs(x) for x in row) for row in A)
+    norm_A_inv = max(sum(abs(x) for x in row) for row in A_inv)
+    
+    # Число обусловленности
+    cond_number = norm_A * norm_A_inv
+    return cond_number
 
 # ==================== ОСНОВНАЯ ФУНКЦИЯ МНК ====================
 
@@ -51,10 +62,11 @@ def calculate_approximating_polynomials(x, y, degrees, x_star=None):
         
         V_transposed = transpose_matrix_mnk(V)
         A_matrix = multiply_matrices_mnk(V_transposed, V)
-        
         b_vector = [sum(V_transposed[i][j] * y[j] for j in range(len(y))) for i in range(len(V_transposed))]
         
-        det, inv, coefficients = method_Gaus(A_matrix, b_vector)
+        det, A_inv, coefficients = method_Gaus(A_matrix, b_vector)
+        
+        cond_number = calculate_condition_number(A_matrix, A_inv)
         
         poly_values = [evaluate_polynomial(coefficients, xi) for xi in x]
         
@@ -68,7 +80,8 @@ def calculate_approximating_polynomials(x, y, degrees, x_star=None):
             'sum_squared_errors': sum_squared_errors,
             'standard_error': standard_error,
             'value_at_star': poly_value_at_star,
-            'function_name': f'F{degree}(x)'
+            'function_name': f'F{degree}(x)',
+            'condition_number': cond_number,
         }
     
     return polynomials
@@ -76,15 +89,14 @@ def calculate_approximating_polynomials(x, y, degrees, x_star=None):
 # ==================== ФУНКЦИИ ВЫВОДА И ВИЗУАЛИЗАЦИИ ====================
 
 def print_results(polynomials, x_star):
-    print("=" * 70)
+    print("=" * 80)
     print("МЕТОД НАИМЕНЬШИХ КВАДРАТОВ - ПРИБЛИЖАЮЩИЕ МНОГОЧЛЕНЫ")
-    print("=" * 70)
+    print("=" * 80)
     
     print(f'x* = {x_star}')
     for degree, poly_data in polynomials.items():
         coeffs = poly_data['coefficients']
         
-        # Прямой порядок коэффициентов как в методичке
         poly_terms = []
         for power, coeff in enumerate(coeffs):
             if power == 0:
@@ -96,6 +108,7 @@ def print_results(polynomials, x_star):
         poly_function_str = " + ".join(poly_terms)
         
         print(f"\nПРИБЛИЖАЮЩИЙ МНОГОЧЛЕН {degree} СТЕПЕНИ:")
+        print(f"Число обусловленности: cond(A) = {poly_data['condition_number']:.3f}")
         print(f"F{degree}(x) = {poly_function_str}")
         print(f"F{degree}(x*): {poly_data['value_at_star']:.4f}")
         print(f"Сумма квадратов ошибок: Φ_{degree} = {poly_data['sum_squared_errors']:.4f}")
@@ -114,7 +127,7 @@ def plot_polynomials_and_function(x, y, polynomials, x_star):
         coeffs = poly_data['coefficients']
         y_plot = [evaluate_polynomial(coeffs, xi) for xi in x_plot]
         plt.plot(x_plot, y_plot, color=colors[i], linewidth=2, 
-                label=f'Приближающий многочлен {degree} степени F{degree}(x)')
+                label=f'F{degree}(x) - {degree} степень (cond={poly_data["condition_number"]:.1f})')
         
         plt.scatter(x, poly_data['values'], color=colors[i], s=40, 
                    marker=markers[i], alpha=0.7, 
@@ -143,7 +156,7 @@ def plot_polynomials_and_function(x, y, polynomials, x_star):
     
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.title('Приближающие многочлены и приближаемая функция')
+    plt.title('Приближающие многочлены и приближаемая функция\n(с числами обусловленности)')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
