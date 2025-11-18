@@ -69,7 +69,7 @@ def euler_rule(a, b, n):
 def runge_romberg(I_h, I_h2, p):
     return I_h2 + (I_h2 - I_h) / (2**p - 1)
 
-def calculate_errors(a, b, n, methods_values):
+def calculate_errors(a, b, n):
     h = (b - a) / n
     errors = {}
     
@@ -127,15 +127,9 @@ def main():
     print(f"Эйлер:                  {I_euler_h2:.8f}")
     print()
 
-    methods_values = {
-        'midpoint': I_mid_h,
-        'trapezoidal': I_trap_h,
-        'simpson': I_simp_h,
-        'euler': I_euler_h
-    }
-    analytical_errors = calculate_errors(a, b, n, methods_values)
+    analytical_errors = calculate_errors(a, b, n)
     
-    print("Аналитические оценки погрешностей (по формулам методички):")
+    print("Аналитические оценки погрешностей:")
     print(f"Средние прямоугольники: {analytical_errors['midpoint']:.8f}")
     print(f"Трапеции:               {analytical_errors['trapezoidal']:.8f}")
     print(f"Симпсон:                {analytical_errors['simpson']:.8f}")
